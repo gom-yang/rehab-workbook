@@ -110,7 +110,7 @@ function home() {
     ["settings", "보호자 설정", "맞춤 훈련 변경", "#settings"]
   ];
   show(`<section class="home-screen">
-    <h1 tabindex="-1">함께 걷는 재활</h1>
+    <h1 tabindex="-1"><span class="footprints" aria-hidden="true"></span>함께 걷는 재활</h1>
     <a class="today-card" href="${ready ? "#today" : "#settings"}">
       <strong>오늘의 훈련 시작</strong>
       <span>맞춤 훈련 · ${totals(plan)}</span>
