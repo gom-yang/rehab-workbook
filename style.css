@@ -1,4 +1,11 @@
 :root{color-scheme:light;--ink:#20382e;--muted:#4a6256;--paper:#f8f7ef;--white:#fffef9;--green:#205840;--soft:#e9f1e5;--line:#c8d6c9}
+@font-face{
+  font-family:"BM Euljiro";
+  src:url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_twelve@1.0/BMEULJIRO.woff") format("woff");
+  font-style:normal;
+  font-weight:400;
+  font-display:swap;
+}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{margin:0;background:var(--paper);color:var(--ink);font:1rem/1.6 system-ui,"Malgun Gothic",sans-serif;word-break:keep-all}
@@ -104,3 +111,8 @@ nav .home-card{padding:clamp(.75rem,3vw,1.4rem);min-height:6.25rem;height:100%;o
 .add-training label{margin:0;min-width:0}
 .add-training select{display:block;width:100%;text-overflow:ellipsis}
 .settings-panel #feedback:empty{margin-top:0;min-height:0}
+h1,h2,h3,.brand,.today-card strong,.home-card strong,.training-folder summary,.settings-panel legend,.plan-name strong{
+  font-family:"BM Euljiro",system-ui,"Malgun Gothic",sans-serif;
+  font-weight:400;
+  letter-spacing:normal;
+}
