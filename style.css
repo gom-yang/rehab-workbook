@@ -32,13 +32,30 @@ li{margin-block:.35rem}
 .prompt{background:var(--soft);padding:1rem;border-radius:1rem;font-size:clamp(1.7rem,7vw,3rem);font-weight:800;margin-block:1rem;text-align:center}
 .choice{font-size:1.3rem}
 #feedback{min-height:1.7em;margin-top:1rem}
-.sudoku{display:grid;grid-template-columns:repeat(4,1fr);width:min(100%,18rem);border:2px solid var(--ink);margin:1rem auto}
+.sudoku{display:grid;grid-template-columns:repeat(var(--size),1fr);width:min(100%,calc(var(--size) * 3rem));border:2px solid var(--ink);margin:1rem auto}
 .cell{display:grid;place-items:center;min-width:0;aspect-ratio:1;border:1px solid var(--line);font-size:1.35rem}
-.cell:nth-child(4n+2){border-right:2px solid var(--ink)}
-.cell:nth-child(n+5):nth-child(-n+8){border-bottom:2px solid var(--ink)}
+.cell.box-right{border-right:2px solid var(--ink)}
+.cell.box-bottom{border-bottom:2px solid var(--ink)}
 .given{background:var(--soft);font-weight:800}
 .cell input{width:100%;height:100%;border:0;text-align:center;color:var(--ink);font:inherit;background:var(--white);padding:0}
 .cell input:focus-visible{outline-offset:-4px}
 fieldset{border:1px solid var(--line);border-radius:1rem;margin:1rem 0;padding:1rem}
 fieldset label{display:block;margin:.4rem 0}
 input[type=checkbox]{width:1.2rem;height:1.2rem;vertical-align:middle}
+.training-link,summary{display:flex;align-items:center;min-height:48px}
+.plan-row{padding:1rem 0;border-bottom:1px solid var(--line)}
+.plan-row button{background:var(--white);color:var(--green)}
+input[type=number],input[type=text],select{min-height:48px;max-width:100%;padding:.45rem;border:1px solid var(--muted);border-radius:.5rem;background:var(--white);color:var(--ink);font:inherit}
+input[type=number]{width:6rem}
+#written button,#practice button{margin:.5rem}
+.blank{display:inline-grid;place-items:center;vertical-align:middle;width:1.35em;height:1.4em;border:2px dashed var(--muted);border-radius:.2em;margin-inline:.07em;background:var(--white)}
+.blank.filled{position:relative;border-style:solid;border-color:var(--green);color:var(--green);background:#d9eedb}
+.arriving-letter{display:block;position:relative;z-index:1}
+.review-controls{margin-top:1rem}
+[aria-pressed=true]{background:var(--soft);box-shadow:inset 0 0 0 2px var(--green)}
+.picture-grid,.maze-grid{display:grid;width:min(100%,16rem);gap:.25rem;margin:1rem 0;text-align:center;font-size:1.6rem}
+.picture-grid{grid-template-columns:repeat(2,1fr)}
+.picture-grid button[aria-pressed=true]{color:var(--green)}
+.maze-grid{grid-template-columns:repeat(4,1fr)}
+.maze-grid span{display:grid;place-items:center;min-height:3rem;background:var(--soft);border:1px solid var(--line)}
+.maze-grid .wall{background:var(--muted)}
