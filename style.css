@@ -48,9 +48,11 @@ input[type=checkbox]{width:1.2rem;height:1.2rem;vertical-align:middle}
 input[type=number],input[type=text],select{min-height:48px;max-width:100%;padding:.45rem;border:1px solid var(--muted);border-radius:.5rem;background:var(--white);color:var(--ink);font:inherit}
 input[type=number]{width:6rem}
 #written button,#practice button{margin:.5rem}
-.blank{display:inline-grid;place-items:center;vertical-align:middle;width:1.35em;height:1.4em;border:2px dashed var(--muted);border-radius:.2em;margin-inline:.07em;background:var(--white)}
-.blank.filled{position:relative;border-style:solid;border-color:var(--green);color:var(--green);background:#d9eedb}
-.arriving-letter{display:block;position:relative;z-index:1}
+.blank{position:relative;display:inline-block;vertical-align:baseline;width:1.35em;margin-inline:.07em;text-align:center}
+.blank::before{content:"";position:absolute;inset-inline:0;top:50%;height:1.35em;transform:translateY(-50%);border:2px dashed var(--muted);border-radius:.2em;background:var(--white)}
+.blank.filled{color:var(--green)}
+.blank.filled::before{border-style:solid;border-color:var(--green);background:#d9eedb}
+.arriving-letter{display:inline-block;position:relative}
 .review-controls{margin-top:1rem}
 [aria-pressed=true]{background:var(--soft);box-shadow:inset 0 0 0 2px var(--green)}
 .picture-grid,.maze-grid{display:grid;width:min(100%,16rem);gap:.25rem;margin:1rem 0;text-align:center;font-size:1.6rem}

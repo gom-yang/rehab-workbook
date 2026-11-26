@@ -163,8 +163,8 @@ function records() {
     new Date(entry.date).getTime() === entry.date && Number.isInteger(entry.count) && entry.count > 0
   );
   show(`<section class="panel"><h1 tabindex="-1">훈련 기록</h1>
-    <p class="muted">완료한 훈련의 날짜와 종류 수를 이 브라우저에 저장합니다.</p>
-    ${history.length ? `<ul>${history.map(({ date, count }) => `<li>${new Date(date).toLocaleString("ko-KR")} · ${count}종 완료</li>`).join("")}</ul>
+    <p class="muted">훈련을 하나 마칠 때마다 이 브라우저에 기록합니다.</p>
+    ${history.length ? `<ul>${history.map(({ date, count, title }) => `<li>${new Date(date).toLocaleString("ko-KR")} · ${typeof title === "string" && title ? escapeHtml(title) + " 완료" : `${count}종 완료`}</li>`).join("")}</ul>
     ${button("clear-records", "이 브라우저의 기록 지우기", true)}<p id="feedback" role="status"></p>`
     : "<p>아직 완료한 훈련이 없어요.</p>"}</section>`);
 }
@@ -430,7 +430,7 @@ function question() {
   } else {
     const [prompt, ...options] = item;
     const displayed = kind === "blank" ? [...prompt].map(char => char === "□"
-      ? '<span class="blank" aria-label="빈칸"></span>' : char).join("") : prompt;
+      ? '<span class="blank" aria-label="빈칸">&nbsp;</span>' : char).join("") : prompt;
     html = `${kind === "blank" ? "<p>빈칸에 들어갈 글자를 골라 주세요.</p>" : listening ? "<p>문제를 듣고 답해 보세요.</p>" : ""}
       <div class="prompt" id="question-prompt" ${listening ? "hidden" : ""}>${listening ? "" : displayed}</div>
       ${listening ? audioControls("문제 듣기") + button("show-listening", "문제를 글로 보기", true) : ""}
@@ -476,7 +476,7 @@ function answer(correct, choice) {
       blank.removeAttribute("aria-label");
       blank.classList.add("filled");
       if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-        const target = blank.getBoundingClientRect();
+        const target = letter.getBoundingClientRect();
         letter.animate?.([
           { transform: `translate(${origin.left + origin.width / 2 - target.left - target.width / 2}px, ${origin.top + origin.height / 2 - target.top - target.height / 2}px)` },
           { transform: "translate(0, 0)" }
@@ -506,6 +506,10 @@ function next() {
     question();
     return;
   }
+  const { title } = session.queue[session.stage].exercise;
+  const entry = { date: Date.now(), count: 1, title };
+  const saved = save(recordsKey, [entry, ...load(recordsKey, [])]);
+  if (!saved) session.recordFailures += 1;
   session.stage += 1;
   session.item = 0;
   if (session.stage < session.queue.length) {
@@ -515,20 +519,18 @@ function next() {
     }
     show(`<section class="panel"><h1 tabindex="-1">잠깐 쉬어 가요</h1>
       <p>다음 훈련은 ${currentExercise().title}입니다.</p>
+      ${saved ? "" : '<p role="status">방금 마친 훈련을 기록에 저장할 수 없었어요.</p>'}
       <div id="timer" class="prompt" role="timer" aria-label="남은 휴식 시간"></div>
       <div class="actions">${button("pause", "일시정지", true)}
-      <button type="button" data-action="resume-training" disabled>다음 훈련 시작</button>
+      ${button("resume-training", "다음 훈련 시작")}
       <a class="button secondary" href="#home">훈련 나가기</a></div></section>`);
     countdown(session.voice.rest, () => {
       document.querySelector("#timer").textContent = "휴식이 끝났어요.";
-      document.querySelector('[data-action="resume-training"]').disabled = false;
     });
     return;
   }
-  const entry = { date: Date.now(), count: session.queue.length };
-  const saved = save(recordsKey, [entry, ...load(recordsKey, [])].slice(0, 30));
   show(`<section class="panel"><h1 tabindex="-1">훈련을 마쳤어요!</h1>
-    <p>${entry.count}종 완료 · ${saved ? "이 브라우저에 기록을 저장했어요." : "브라우저에 기록을 저장할 수 없었어요."}</p>
+    <p>${session.stage}종 완료 · ${session.recordFailures ? `${session.recordFailures}개 훈련의 기록을 저장할 수 없었어요.` : "이 브라우저에 기록을 저장했어요."}</p>
     <div class="actions"><a class="button" href="#home">홈으로</a>
     <a class="button secondary" href="#records">훈련 기록</a></div></section>`);
 }
@@ -567,7 +569,7 @@ function start(rows, voice) {
     show('<section class="panel"><h1 tabindex="-1">실행할 훈련이 없어요</h1><p>맞춤 목록에 훈련을 추가하거나 복습할 문제를 먼저 저장해 주세요.</p><a class="button" href="#home">홈으로</a></section>');
     return;
   }
-  session = { queue, voice, stage: 0, item: 0, recall: false };
+  session = { queue, voice, stage: 0, item: 0, recall: false, recordFailures: 0 };
   question();
 }
 
@@ -632,7 +634,7 @@ main.addEventListener("click", event => {
     case "tile": movePuzzle(control); break;
     case "step": moveMaze(control); break;
     case "answer": answer(control.dataset.index === "0", control); break;
-    case "resume-training": question(); break;
+    case "resume-training": stopTimer(); question(); break;
     case "clear-records":
       if (window.confirm("이 브라우저의 훈련 기록을 모두 지울까요?")) {
         if (save(recordsKey, [])) records();
