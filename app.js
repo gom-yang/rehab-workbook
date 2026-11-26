@@ -94,33 +94,63 @@ function button(action, label, secondary = false) {
   return `<button type="button" data-action="${action}" class="${secondary ? "secondary" : ""}">${label}</button>`;
 }
 
+const homeFolders = [
+  ["language", "언어 훈련", "말하기 · 듣기 · 읽기 · 쓰기"],
+  ["cognition", "인지 훈련", "기억 · 계산 · 주의 등 8영역"],
+  ["conversation", "생활 대화", "상황별 말하기 연습"],
+  ["review", "복습하기", "다시 연습할 문제"]
+];
+
 function home() {
   const plan = configuration().plan.map(prepareStage);
-  const menuMarkup = menus.map(({ title, groups }) => `
-    <section class="tile"><h2>${title}</h2>
-      ${groups.map(([group, ...items]) => `<details><summary>${group}</summary><ul>
-        ${items.map(item => byId[typeof item === "string" ? item : item.id]
-          ? `<li><a class="training-link" href="#practice/${typeof item === "string" ? item : item.id}">${typeof item === "string" ? byId[item].title : item.title}</a></li>`
-          : `<li>${item}<span class="badge">준비 중</span></li>`).join("")}
-      </ul></details>`).join("")}
-    </section>`).join("");
-  show(`
-    <section class="hero"><p class="eyebrow" lang="en">REHAB WORKBOOK</p>
-      <h1 tabindex="-1">함께 걷는 재활</h1><p>오늘도 우리만의 속도로</p>
-      ${plan.some(stage => stage.items.length) ? '<a class="button" href="#today">오늘의 훈련 시작</a>' : '<a class="button" href="#settings">보호자 설정</a>'}
-      <p class="muted">보호자가 설정한 맞춤 훈련 · ${totals(plan)}</p>
-    </section>
-    <section class="tile"><h2>맞춤 훈련 골라서 시작하기</h2><div class="actions">
-      ${plan.map(({ exercise, items, level }, index) => items.length
-        ? `<a class="button secondary" href="#planned/${index}">${exercise.title} · ${exercise.levels[level]} · ${items.length}${exercise.kind === "sudoku" ? "판" : "문제"}</a>`
-        : `<span>${exercise.title} · 저장된 문제 없음</span>`).join("")}
-    </div></section>
-    <h2 style="margin-top:1.5rem">전체 훈련 메뉴</h2>
-    <div class="grid">${menuMarkup}
-      <section class="tile"><h2>복습하기</h2><ul>
-        ${reviewGroups.map(([tag, title]) => `<li><a class="training-link" href="#practice/review-${tag}">${title}</a></li>`).join("")}
-      </ul></section>
-    </div>`);
+  const ready = plan.some(stage => stage.items.length);
+  const cards = [
+    ...homeFolders.map(([id, title, description]) => [id, title, description, `#menu/${id}`]),
+    ["records", "훈련 기록", "마친 훈련 확인", "#records"],
+    ["settings", "보호자 설정", "맞춤 훈련 변경", "#settings"]
+  ];
+  show(`<section class="home-screen">
+    <h1 tabindex="-1">함께 걷는 재활</h1>
+    <a class="today-card" href="${ready ? "#today" : "#settings"}">
+      <strong>오늘의 훈련 시작</strong>
+      <span>맞춤 훈련 · ${totals(plan)}</span>
+      <b><span aria-hidden="true">${ready ? "▶ " : ""}</span>${ready ? "시작하기" : "보호자 설정 열기"}</b>
+    </a>
+    <nav class="home-cards" aria-label="훈련 메뉴">
+      ${cards.map(([id, title, description, link]) => `<a href="${link}" class="home-card tone-${id}">
+        <strong>${title}</strong><span>${description}</span></a>`).join("")}
+    </nav>
+  </section>`);
+}
+
+function menuPage(id) {
+  const index = homeFolders.findIndex(([key]) => key === id);
+  const [, title] = homeFolders[index];
+  const groups = id === "review" ? [["다시 연습할 문제", ...reviewGroups.map(([tag]) => `review-${tag}`)]]
+    : menus[index].groups;
+  const content = groups.map(([name, ...items]) => {
+    const links = `<ul class="folder-links">${items.map(item => {
+      const exercise = byId[typeof item === "string" ? item : item.id];
+      return exercise
+        ? `<li><a class="training-link" href="#practice/${exercise.id}">${exercise.title}</a></li>`
+        : `<li>${item}<span class="badge">준비 중</span></li>`;
+    }).join("")}</ul>`;
+    return groups.length === 1 ? links : `<details class="training-folder"><summary>${name}</summary>${links}</details>`;
+  }).join("");
+  show(`<section class="panel"><a class="training-link" href="#home">← 홈으로</a>
+    <h1 tabindex="-1">${title}</h1><div class="folder-list">${content}</div></section>`);
+}
+
+function planIcon(exercise) {
+  const byKind = {
+    repeat: ["🎙", "language"], open: ["💬", "conversation"], blank: ["✎", "settings"],
+    sudoku: ["▦", "cognition"], memory: ["🧠", "review"], listen: ["♫", "language"],
+    write: ["✎", "settings"], "write-listen": ["✎", "settings"], "write-open": ["✎", "settings"],
+    puzzle: ["🧩", "cognition"], maze: ["↱", "cognition"], review: ["↻", "review"]
+  };
+  const [icon, tone] = exercise.id === "phrases" ? ["💬", "language"]
+    : exercise.id === "math" ? ["±", "cognition"] : byKind[exercise.kind] ?? ["✓", "language"];
+  return `<span class="plan-icon tone-${tone}" aria-hidden="true">${icon}</span>`;
 }
 
 function levels(exercise, selected) {
@@ -131,30 +161,41 @@ function levels(exercise, selected) {
 function settings(focus) {
   const fields = [["rate", "음성 속도 (배)", 0.5, 1.5, 0.1], ["repeats", "반복 횟수", 1, 5, 1],
     ["wait", "따라 말하기 대기 (초)", 0, 60, 1], ["rest", "훈련 사이 휴식 (초)", 0, 300, 1]];
-  main.innerHTML = `<section class="panel"><h1 tabindex="-1">보호자 설정</h1>
+  main.innerHTML = `<section class="panel settings-panel"><h1 tabindex="-1">보호자 설정</h1>
     <form id="settings"><fieldset><legend>오늘의 맞춤 훈련</legend>
-      <p>변경하면 이 브라우저에 자동 저장돼요. 문제 수가 준비된 문제보다 많으면 같은 문제가 다시 나와요.</p>
-      <label>추가할 훈련 <select id="add-training">${[...new Set(exercises.map(exercise => exercise.domain))].map(domain =>
-        `<optgroup label="${domain}">${exercises.filter(exercise => exercise.domain === domain)
-          .map(exercise => `<option value="${exercise.id}">${exercise.title}</option>`).join("")}</optgroup>`).join("")}</select></label>
-      ${button("add", "추가")}
+      <p class="muted">훈련을 누르면 설정을 바꿀 수 있어요. 변경 내용은 자동 저장됩니다.</p>
+      <p class="plan-total">전체 분량 <strong id="total" aria-live="polite">${totals(draft.plan.map(prepareStage))}</strong></p>
       <ol class="plan">${draft.plan.map(({ id, level, count }, index) => {
         const exercise = byId[id];
-        return `<li data-row="${index}" class="plan-row"><strong>${exercise.title}</strong>
+        return `<li data-row="${index}" class="plan-row"><details>
+          <summary class="plan-summary">
+            ${planIcon(exercise)}
+            <span class="plan-name"><strong>${index + 1}. ${exercise.title}</strong>
+            <span class="muted" data-level-label>${exercise.levels[level]}</span></span>
+            <strong class="plan-count"><span data-count-label>${count}</span>${exercise.kind === "sudoku" ? "판" : "문제"}</strong>
+          </summary>
+          <div class="plan-editor">
           <div class="actions"><label>난이도 <select name="level">${levels(exercise, level)}</select></label>
           <label>${exercise.kind === "sudoku" ? "판 수" : "문제 수"} <input name="count" type="number" min="1" max="50" value="${count}" required></label></div>
           <div class="actions">
             <button type="button" data-action="up" aria-label="${exercise.title} 위로" ${index === 0 ? "disabled" : ""}>위로</button>
             <button type="button" data-action="down" aria-label="${exercise.title} 아래로" ${index === draft.plan.length - 1 ? "disabled" : ""}>아래로</button>
             <button type="button" data-action="remove" aria-label="${exercise.title} 삭제">삭제</button>
-          </div></li>`;
+          </div></div></details></li>`;
       }).join("")}</ol>
-      <p id="total" aria-live="polite">${totals(draft.plan.map(prepareStage))}</p>
+      <div class="actions add-training"><label>추가할 훈련 <select id="add-training">${[...new Set(exercises.map(exercise => exercise.domain))].map(domain =>
+        `<optgroup label="${domain}">${exercises.filter(exercise => exercise.domain === domain)
+          .map(exercise => `<option value="${exercise.id}">${exercise.title}</option>`).join("")}</optgroup>`).join("")}</select></label>
+      ${button("add", "추가")}</div>
+      <small>준비된 문제보다 문제 수가 많으면 같은 문제가 다시 나와요.</small>
     </fieldset><fieldset><legend>음성 및 진행</legend>
       ${fields.map(([id, title, min, max, step]) => `<label>${title} <input name="${id}" type="number"
         min="${min}" max="${max}" step="${step}" value="${draft.voice[id]}" required></label>`).join("")}
     </fieldset><button>설정 저장</button><p id="feedback" role="status"></p></form></section>`;
-  (main.querySelector(focus ?? "h1") ?? main.querySelector("#add-training")).focus();
+  const target = main.querySelector(focus ?? "h1") ?? main.querySelector("#add-training");
+  const details = target.closest("details");
+  if (details && !target.matches("summary")) details.open = true;
+  target.focus();
 }
 
 function records() {
@@ -558,6 +599,8 @@ function route() {
     settings();
   } else if (page === "records") {
     records();
+  } else if (page === "menu" && homeFolders.some(([key]) => key === id)) {
+    menuPage(id);
   } else {
     home();
   }
@@ -649,13 +692,21 @@ main.addEventListener("input", event => {
   if (field.form?.id !== "settings" || !field.name || !field.validity.valid) return;
   const row = field.closest("[data-row]");
   if (row) {
-    draft.plan[Number(row.dataset.row)][field.name] = Number(field.value);
+    const training = draft.plan[Number(row.dataset.row)];
+    training[field.name] = Number(field.value);
+    row.querySelector("[data-level-label]").textContent = byId[training.id].levels[training.level];
+    row.querySelector("[data-count-label]").textContent = training.count;
     document.querySelector("#total").textContent = totals(draft.plan.map(prepareStage));
   } else {
     draft.voice[field.name] = Number(field.value);
   }
   persistSettings();
 });
+
+main.addEventListener("invalid", event => {
+  const details = event.target.form?.id === "settings" && event.target.closest("details");
+  if (details) details.open = true;
+}, true);
 
 main.addEventListener("submit", event => {
   event.preventDefault();
