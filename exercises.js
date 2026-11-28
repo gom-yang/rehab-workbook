@@ -151,6 +151,97 @@ function leveled(id, title, kind, stages) {
   return { id, title, kind, levels: stages.map(([label]) => label), makeItems: level => stages[level].slice(1) };
 }
 
+const operationLevels = ["기초", "초급", "중급", "고급"];
+const operations = [["add", "덧셈"], ["subtract", "뺄셈"], ["multiply", "곱셈"], ["divide", "나눗셈"], ["mixed", "혼합 계산"]];
+
+function randomNumber(min, max) {
+  return min + Math.floor(Math.random() * (max - min + 1));
+}
+
+function calculation(operation, level) {
+  const a = randomNumber([2, 21, 201, 201][level], [9, 89, 899, 899][level]);
+  const b = randomNumber([1, 11, 101, 101][level], [9, 89, 899, 899][level]);
+  const c = randomNumber(2, 9);
+  let prompt, result;
+  if (operation === "add") {
+    prompt = level === 3 ? `${a} + ${b} + ${c}` : `${a} + ${b}`;
+    result = a + b + (level === 3 ? c : 0);
+  } else if (operation === "subtract") {
+    const [larger, smaller] = [Math.max(a, b), Math.min(a, b)];
+    prompt = level === 3 ? `(${larger} + ${c}) − ${smaller}` : `${larger} − ${smaller}`;
+    result = larger - smaller + (level === 3 ? c : 0);
+  } else if (operation === "multiply") {
+    const factor = level < 2 ? c : level === 2 ? randomNumber(11, 39) : randomNumber(101, 199);
+    const left = level === 2 ? randomNumber(21, 89) : a;
+    prompt = `${left} × ${factor}`;
+    result = left * factor;
+  } else if (operation === "divide") {
+    const divisor = level < 2 ? c : randomNumber(11, 22);
+    const quotient = randomNumber([1, 5, 12, 12][level], [8, 11, 40, 40][level]);
+    const remainder = level === 3 ? randomNumber(1, divisor - 1) : 0;
+    prompt = `${divisor * quotient + remainder} ÷ ${divisor}${remainder ? " (몫과 나머지)" : ""}`;
+    if (remainder) return [prompt, `${quotient} 나머지 ${remainder}`, `${quotient + 1} 나머지 ${remainder}`,
+      `${quotient} 나머지 ${remainder - 1}`, `${quotient - 1} 나머지 ${remainder}`];
+    result = quotient;
+  } else {
+    const factor = randomNumber(2, level === 0 ? 4 : 9);
+    const offset = randomNumber(1, 9);
+    prompt = level === 3 ? `(${a} + ${offset}) × ${factor} − ${c}` : `${a} + ${c} × ${factor}`;
+    result = level === 3 ? (a + offset) * factor - c : a + c * factor;
+  }
+  return [prompt, ...[result, result + 1, result + 2, result > 0 ? result - 1 : 3].map(String)];
+}
+
+const arithmetic = operations.map(([operation, name]) => ({
+  id: `arithmetic-${operation}`, title: name, kind: "quiz", levels: operationLevels,
+  makeItems: (level, count = 10) => Array.from({ length: count }, () => calculation(operation, level))
+}));
+
+// Each row contains a pair of words and optional visual cues for each meaning.
+const adjectivePairs = [
+  ["뜨겁다", "차갑다", "♨️☕", "🧊🥛"], ["기쁘다", "슬프다", "😊", "😢"], ["크다", "작다", "🐘", "🐁"],
+  ["길다", "짧다", "━━━━━━", "━━"], ["무겁다", "가볍다", "🏋️", "🪶"], ["빠르다", "느리다", "🚄", "🐌"],
+  ["밝다", "어둡다", "☀️", "🌑"], ["깨끗하다", "더럽다", "plate-clean", "plate-dirty"], ["많다", "적다", "●●●●●", "●●"],
+  ["높다", "낮다", "▇", "▂"]
+];
+const verbPairs = [
+  ["열다", "닫다", "door-open", "door-closed"], ["오르다", "내려가다", "↗", "↘"],
+  ["앉다", "일어서다", "sit", "stand"], ["넣다", "빼다", "put-in", "take-out"],
+  ["밀다", "당기다", "push", "pull"], ["웃다", "울다", "😄", "😭"], ["켜다", "끄다", "light-on", "light-off"],
+  ["입다", "벗다", "wear", "remove"], ["시작하다", "끝내다", "▶", "■"], ["들어가다", "나오다", "enter", "exit"]
+];
+const oppositeSentences = [
+  ["차는 뜨겁지만 얼음은 차갑다.", "차갑다", "뜨겁다"],
+  ["산은 높지만 이 언덕은 낮다.", "낮다", "높다"],
+  ["아침에는 문을 열고 저녁에는 닫는다.", "닫는다", "연다"],
+  ["출발할 때 일어서고 도착하면 앉는다.", "앉는다", "일어선다"]
+];
+const oppositeLevels = ["그림 · 2개 선택", "그림 · 3개 선택", "그림 · 4개 선택",
+  "낱말 선택", "스스로 말하기", "직접 쓰기", "문장 속 반대말"];
+const oppositeExercises = [
+  ["opposite-mixed", "반대말 찾기", [...adjectivePairs, ...verbPairs]],
+  ["opposite-adjective", "반대말 찾기 · 형용사", adjectivePairs],
+  ["opposite-verb", "반대말 찾기 · 동사", verbPairs]
+].map(([id, title, pairs]) => ({
+  id, title, kind: "opposite", levels: oppositeLevels,
+  makeItems: level => {
+    if (level === 6) {
+      const sentences = id === "opposite-adjective" ? oppositeSentences.slice(0, 2)
+        : id === "opposite-verb" ? oppositeSentences.slice(2) : oppositeSentences;
+      return sentences.map(([prompt, correct, target]) => ({
+        prompt, target, mode: "sentence", options: [[correct], [target], ["않는다"]]
+      }));
+    }
+    return pairs.map(([prompt, correct, picture, answerPicture], index) => ({
+      prompt, picture, mode: ["picture", "picture", "picture", "word", "say", "write"][level],
+      options: [[correct, answerPicture], ...Array.from({ length: Math.min(level + 1, 3) }, (_, offset) => {
+        const [, label, , cue] = pairs[(index + offset + 1) % pairs.length];
+        return [label, cue];
+      })]
+    }));
+  }
+}));
+
 const menus = [
   { title: "언어 훈련", groups: [
     ["말하기", "words", "phrases",
@@ -166,6 +257,7 @@ const menus = [
       training("describe", "그림 보고 문장 말하기", "open", ["🐕 🏃 어떤 일이 일어나고 있나요?", "강아지가 달려요."]),
       training("category", "범주별 단어 말하기", "open", ["과일을 두 가지 말해 보세요.", "예시: 사과, 바나나"]),
       training("opposites", "반대말·유의어 말하기", "open", ["‘크다’의 반대말을 말해 보세요.", "작다"], ["‘기쁘다’와 비슷한 말을 말해 보세요.", "즐겁다"]),
+      ...oppositeExercises,
       training("respond", "질문에 대답하기", "open", ["오늘 아침에 무엇을 먹었나요?", "예시: 밥과 달걀을 먹었어요."])],
     ["듣기",
       training("listen-picture", "듣고 그림 찾기", "listen", ["사과", "🍎", "🚌", "🧤"], ["우산", "☂️", "🍇", "🐈"]),
@@ -209,6 +301,7 @@ const menus = [
     ["계산력", "math",
       training("compare", "숫자 크기 비교", "quiz", ["더 큰 수를 고르세요.", "24", "18", "13"]),
       training("operations", "사칙연산·혼합 계산", "quiz", ["13 + 8", "21", "20", "22"], ["19 − 7", "12", "11", "13"], ["4 × 3", "12", "7", "16"], ["15 ÷ 3", "5", "3", "6"], ["2 + 3 × 4", "14", "20", "10"]),
+      ...arithmetic,
       leveled("money", "돈 계산·거스름돈", "quiz", [
         ["동전", ["500원 동전 2개는 얼마인가요?", "1,000원", "500원", "2,000원"]],
         ["지폐", ["1,000원 지폐 3장은 얼마인가요?", "3,000원", "2,000원", "4,000원"]],
